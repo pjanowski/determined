@@ -18,7 +18,7 @@ type (
 	// in a shim if needed.
 	gridSearchState struct {
 		PendingTrials    int              `json:"pending_trials"`
-		RemainingTrials  []hparamSample   `json:"remaining_trials"`
+		RemainingTrials  []HParamSample   `json:"remaining_trials"`
 		SearchMethodType SearchMethodType `json:"search_method_type"`
 	}
 	// gridSearch corresponds to a grid search method. A grid of hyperparameter configs is built. Then,
@@ -36,7 +36,7 @@ func newGridSearch(config expconf.GridConfig) SearchMethod {
 		GridConfig: config,
 		gridSearchState: gridSearchState{
 			SearchMethodType: GridSearch,
-			RemainingTrials:  make([]hparamSample, 0),
+			RemainingTrials:  make([]HParamSample, 0),
 		},
 	}
 }
@@ -105,10 +105,10 @@ func (s *gridSearch) trialClosed(ctx context, _ model.RequestID) ([]Operation, e
 	return ops, nil
 }
 
-func newHyperparameterGrid(params expconf.Hyperparameters) []hparamSample {
+func newHyperparameterGrid(params expconf.Hyperparameters) []HParamSample {
 	hpToInd, valueSets := getHPsValueSets(params)
 	values := cartesianProduct(valueSets)
-	var samples []hparamSample
+	var samples []HParamSample
 	for _, val := range values {
 		samples = append(samples, createHparamSample(params, hpToInd, val))
 	}
@@ -167,8 +167,8 @@ func hpToVal(
 func createHparamSample(
 	hparams expconf.Hyperparameters,
 	hpToInd map[expconf.Hyperparameter]int,
-	values []interface{}) hparamSample {
-	sample := make(hparamSample)
+	values []interface{}) HParamSample {
+	sample := make(HParamSample)
 	hparams.Each(func(name string, param expconf.Hyperparameter) {
 		sample[name] = hpToVal(param, hpToInd, values)
 	})
