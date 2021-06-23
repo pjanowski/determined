@@ -48,7 +48,7 @@ def test_language_modeling_clm() -> None:
     example_path = conf.model_hub_examples_path("huggingface/language-modeling")
     config = conf.load_config(os.path.join(example_path, "clm_config.yaml"))
     config = conf.set_slots_per_trial(config, 8)
-    config = conf.set_global_batch_size(config, 16)
+    config = conf.set_global_batch_size(config, 8)
     config = conf.set_max_length(config, {"batches": 200})
     config = set_docker_image(config)
 
@@ -60,7 +60,7 @@ def test_language_modeling_clm_amp() -> None:
     example_path = conf.model_hub_examples_path("huggingface/language-modeling")
     config = conf.load_config(os.path.join(example_path, "clm_config.yaml"))
     config = conf.set_slots_per_trial(config, 8)
-    config = conf.set_global_batch_size(config, 16)
+    config = conf.set_global_batch_size(config, 8)
     config = conf.set_max_length(config, {"batches": 200})
     config = conf.set_hparam(config, "use_apex_amp", True)
     config = set_docker_image(config)
@@ -214,8 +214,9 @@ def test_squad_amp() -> None:
 def test_squad_with_beam_search() -> None:
     example_path = conf.model_hub_examples_path("huggingface/question-answering")
     config = conf.load_config(os.path.join(example_path, "squad_beam_search.yaml"))
+    config = conf.set_hparam(config, "pretrained_model_name_or_path", "xlnet-base-cased")
     config = conf.set_slots_per_trial(config, 8)
-    config = conf.set_global_batch_size(config, 16)
+    config = conf.set_global_batch_size(config, 8)
     config = conf.set_max_length(config, {"batches": 200})
     config = set_docker_image(config)
 
@@ -226,8 +227,9 @@ def test_squad_with_beam_search() -> None:
 def test_squad_with_beam_search_amp() -> None:
     example_path = conf.model_hub_examples_path("huggingface/question-answering")
     config = conf.load_config(os.path.join(example_path, "squad_beam_search.yaml"))
+    config = conf.set_hparam(config, "pretrained_model_name_or_path", "xlnet-base-cased")
     config = conf.set_slots_per_trial(config, 8)
-    config = conf.set_global_batch_size(config, 16)
+    config = conf.set_global_batch_size(config, 8)
     config = conf.set_max_length(config, {"batches": 200})
     config = conf.set_hparam(config, "use_apex_amp", True)
     config = set_docker_image(config)
@@ -264,8 +266,9 @@ def test_squad_v2_amp() -> None:
 def test_squad_v2_with_beam_search() -> None:
     example_path = conf.model_hub_examples_path("huggingface/question-answering")
     config = conf.load_config(os.path.join(example_path, "squad_v2_beam_search.yaml"))
+    config = conf.set_hparam(config, "pretrained_model_name_or_path", "xlnet-base-cased")
     config = conf.set_slots_per_trial(config, 8)
-    config = conf.set_global_batch_size(config, 16)
+    config = conf.set_global_batch_size(config, 8)
     config = conf.set_max_length(config, {"batches": 200})
     config = set_docker_image(config)
 
@@ -276,8 +279,9 @@ def test_squad_v2_with_beam_search() -> None:
 def test_squad_v2_with_beam_search_amp() -> None:
     example_path = conf.model_hub_examples_path("huggingface/question-answering")
     config = conf.load_config(os.path.join(example_path, "squad_v2_beam_search.yaml"))
+    config = conf.set_hparam(config, "pretrained_model_name_or_path", "xlnet-base-cased")
     config = conf.set_slots_per_trial(config, 8)
-    config = conf.set_global_batch_size(config, 16)
+    config = conf.set_global_batch_size(config, 8)
     config = conf.set_max_length(config, {"batches": 200})
     config = conf.set_hparam(config, "use_apex_amp", True)
     config = set_docker_image(config)
