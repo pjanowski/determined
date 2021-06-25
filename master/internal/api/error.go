@@ -68,7 +68,7 @@ func AsErrNotFound(msg string, args ...interface{}) error {
 // APIErr2GRPC converts internal api error categories into grpc status.Errors.
 func APIErr2GRPC(err error) error {
 	switch {
-	case errors.Is(err, ErrBadRequest):
+	case errors.Is(err, ErrInvalid):
 		return status.Errorf(
 			codes.InvalidArgument,
 			err.Error(),

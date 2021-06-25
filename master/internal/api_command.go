@@ -147,7 +147,7 @@ func (a *apiServer) prepareLaunchParams(ctx context.Context, req *protoCommandPa
 		configBytes, &req.TemplateName, req.MustZeroSlot)
 	if err != nil {
 		if err == errCommandUnfulfillable {
-			return nil, api.AsErrBadRequest(
+			return nil, api.AsValidationError(
 				"resource request unfulfillable, please try requesting less slots")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to make command spec: %s", err)
