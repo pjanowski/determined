@@ -1,5 +1,5 @@
 # The image registry to use. Defaults to the determinedai repository in DockerHub.
-imageRegistry: mackrorysd
+imageRegistry: determinedai
 
 # Install Determined enterprise edition.
 enterpriseEdition: false
