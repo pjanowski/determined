@@ -310,7 +310,6 @@ export interface MetricName {
 
 export interface Checkpoint extends StartEndTimes {
   resources?: Record<string, number>;
-  state: CheckpointState;
   trialId: number;
   uuid? : string;
   validationMetric? : number;
@@ -322,7 +321,6 @@ export interface Workload extends StartEndTimes {
 
 export interface CheckpointWorkload extends Workload {
   resources?: Record<string, number>;
-  state: CheckpointState;
   uuid? : string;
 }
 
@@ -334,7 +332,6 @@ export interface CheckpointWorkloadExtended extends CheckpointWorkload {
 export interface MetricsWorkload extends Workload {
   metrics?: Record<string, number>;
   numInputs?: number;
-  state: RunState;
 }
 export interface WorkloadWrapper {
   checkpoint?: CheckpointWorkload;
