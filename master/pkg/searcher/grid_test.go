@@ -91,7 +91,7 @@ func TestNestedGrid(t *testing.T) {
 		},
 	}
 	actual := newHyperparameterGrid(hparams)
-	expected := []hparamSample{
+	expected := []HParamSample{
 		{"1": 0, "2": map[string]interface{}{"3": 0}},
 		{"1": 0, "2": map[string]interface{}{"3": 5}},
 		{"1": 0, "2": map[string]interface{}{"3": 10}},

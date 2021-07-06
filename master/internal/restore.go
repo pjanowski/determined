@@ -99,14 +99,14 @@ func (m *Master) restoreExperiment(expModel *model.Experiment) error {
 // restoreTrial takes the a searcher.Create and attempts to restore the trial that would be
 // associated with it. On failure, the trial is just reset to the start and errors are logged.
 func (e *experiment) restoreTrial(
-	ctx *actor.Context, ckpt *model.Checkpoint, state TrialSearcherState,
+	ctx *actor.Context, ckpt *model.Checkpoint, searcher TrialSearcherState,
 ) {
-	l := ctx.Log().WithField("request-id", state.Create.RequestID)
+	l := ctx.Log().WithField("request-id", searcher.Create.RequestID)
 	l.Info("restoring trial")
 
 	var trialID *int
 	var terminal bool
-	switch trial, err := e.db.TrialByExperimentAndRequestID(e.ID, state.Create.RequestID); {
+	switch trial, err := e.db.TrialByExperimentAndRequestID(e.ID, searcher.Create.RequestID); {
 	case errors.Cause(err) == db.ErrNotFound:
 		l.Info("trial was never previously allocated")
 	case err != nil:
@@ -129,24 +129,27 @@ func (e *experiment) restoreTrial(
 
 	// In the event a trial is terminal and is not recorded in the searcher, replay the close.
 	if terminal {
-		if !e.searcher.TrialsClosed[state.Create.RequestID] {
-			ctx.Tell(ctx.Self(), trialClosed{requestID: state.Create.RequestID})
+		if !e.searcher.TrialsClosed[searcher.Create.RequestID] {
+			ctx.Tell(ctx.Self(), trialClosed{requestID: searcher.Create.RequestID})
 		}
 		return
 	}
 
 	config := schemas.Copy(e.Config).(expconf.ExperimentConfig)
-	t := newTrial(e, config, ckpt, state)
+	t := newTrial(
+		e.ID, e.State, searcher, e.rm, e.trialLogger, e.db, config, ckpt,
+		e.taskSpec, e.modelDefinition, e.agentUserGroup,
+	)
 	if trialID != nil {
-		t.processID(*trialID)
-		if _, ok := e.searcher.TrialIDs[state.Create.RequestID]; !ok {
+		t.setID(*trialID)
+		if _, ok := e.searcher.TrialIDs[searcher.Create.RequestID]; !ok {
 			ctx.Tell(ctx.Self(), trialCreated{
 				trialID:   *trialID,
-				requestID: state.Create.RequestID,
+				requestID: searcher.Create.RequestID,
 			})
 		}
 	}
-	ctx.ActorOf(state.Create.RequestID, t)
+	ctx.ActorOf(searcher.Create.RequestID, t)
 	l.Infof("restored trial")
 }
 

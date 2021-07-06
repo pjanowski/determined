@@ -165,10 +165,8 @@ func (a *apiServer) actorRequest(addr string, req actor.Message, v interface{}) 
 	return nil
 }
 
-// askAtDefaultSystem asks addr the req and puts the response into what v points at.
-func (a *apiServer) askAtDefaultSystem(
-	addr actor.Address, req interface{}, v interface{},
-) error {
+// ask asks addr the req and puts the response into what v points at.
+func (a *apiServer) ask(addr actor.Address, req interface{}, v interface{}) error {
 	if reflect.ValueOf(v).IsValid() && !reflect.ValueOf(v).Elem().CanSet() {
 		return status.Errorf(
 			codes.Internal,

@@ -9,7 +9,11 @@ DROP TABLE public.runs;
 DROP TYPE public.run_type;
 
 CREATE TYPE public.task_type AS ENUM (
-    'TRIAL'
+    'TRIAL',
+    'NOTEBOOK',
+    'SHELL',
+    'COMMAND',
+    'CHECKPOINT_GC'
 );
 
 -- Task runs represent the multiple runs of a task, e.g. in the event

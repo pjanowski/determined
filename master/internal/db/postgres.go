@@ -1226,7 +1226,6 @@ func (db *PgDB) UpdateTrialRunnerState(id int, state string) error {
 	return db.UpdateTrialRunnerMetadata(id, &trialv1.TrialRunnerMetadata{State: state})
 }
 
-
 // UpdateTrialRunnerMetadata updates a trial's metadata about its runner.
 func (db *PgDB) UpdateTrialRunnerMetadata(id int, md *trialv1.TrialRunnerMetadata) error {
 	if _, err := db.sql.Exec(`

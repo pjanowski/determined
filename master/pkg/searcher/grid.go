@@ -130,7 +130,7 @@ func getHPValueSet(h expconf.Hyperparameter) [][]interface{} {
 
 // Returns the gridded values for all hyperparameters in valueSets.
 // hpToInd maps each Hyperparameter to the corresponding index in valueSets
-// so we will know how to parse those values into hparamSample later.
+// so we will know how to parse those values into HParamSample later.
 func getHPsValueSets(params expconf.Hyperparameters) (
 	map[expconf.Hyperparameter]int, [][]interface{}) {
 	var results [][]interface{}
@@ -162,7 +162,7 @@ func hpToVal(
 	return values[ind]
 }
 
-// Create a hparamSample for a given generated set of values in the
+// Create a HParamSample for a given generated set of values in the
 // gridded space.
 func createHparamSample(
 	hparams expconf.Hyperparameters,

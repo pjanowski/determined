@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/determined-ai/determined/master/pkg/model"
+
 	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 
@@ -33,7 +35,7 @@ func (m *Master) postTrialKill(c echo.Context) (interface{}, error) {
 		return nil, echo.NewHTTPError(http.StatusNotFound,
 			fmt.Sprintf("active trial not found: %d", args.TrialID))
 	}
-	resp = m.system.AskAt(resp.Get().(*actor.Ref).Address(), killTrial{})
+	resp = m.system.AskAt(resp.Get().(*actor.Ref).Address(), model.StoppingCanceledState)
 	if resp.Source() == nil {
 		return nil, echo.NewHTTPError(http.StatusNotFound,
 			fmt.Sprintf("active trial not found: %d", args.TrialID))

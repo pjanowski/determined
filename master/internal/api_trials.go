@@ -299,7 +299,7 @@ func (a *apiServer) KillTrial(
 		return nil, status.Errorf(codes.NotFound, "trial %d not found", req.Id)
 	}
 
-	if err = a.askAtDefaultSystem(actor.Addr("trials", req.Id), killTrial{}, nil); err != nil {
+	if err = a.ask(actor.Addr("trials", req.Id), model.StoppingCanceledState, nil); err != nil {
 		return nil, err
 	}
 	return &apiv1.KillTrialResponse{}, nil
@@ -557,7 +557,7 @@ func (a *apiServer) TrialPreemptionSignal(
 
 	id := uuid.New()
 	var w preemptionWatcher
-	if err := a.askAtDefaultSystem(trial, watchPreemption{id: id}, &w); err != nil {
+	if err := a.ask(trial, watchPreemption{id: id}, &w); err != nil {
 		return nil, err
 	}
 	defer a.m.system.TellAt(trial, unwatchPreemption{id: id})
@@ -581,7 +581,7 @@ func (a *apiServer) GetCurrentTrialSearcherOperation(
 	}
 
 	var resp TrialSearcherState
-	if err := a.askAtDefaultSystem(exp, trialGetSearcherState{
+	if err := a.ask(exp, trialGetSearcherState{
 		trialID: int(req.TrialId),
 	}, &resp); err != nil {
 		return nil, err
@@ -609,7 +609,7 @@ func (a *apiServer) CompleteTrialSearcherValidation(
 	}
 	exp := actor.Addr("experiments", eID)
 
-	if err = a.askAtDefaultSystem(exp, trialCompleteOperation{
+	if err = a.ask(exp, trialCompleteOperation{
 		trialID: int(req.TrialId),
 		metric:  req.CompletedOperation.SearcherMetric,
 		op:      searcher.ValidateAfterFromProto(rID, req.CompletedOperation.Op),
@@ -631,7 +631,7 @@ func (a *apiServer) ReportTrialSearcherEarlyExit(
 	}
 	exp := actor.Addr("experiments", eID)
 
-	if err = a.askAtDefaultSystem(exp, trialReportEarlyExit{
+	if err = a.ask(exp, trialReportEarlyExit{
 		trialID: int(req.TrialId),
 		reason:  workload.ExitedReasonFromProto(req.EarlyExit.Reason),
 	}, nil); err != nil {
@@ -652,7 +652,7 @@ func (a *apiServer) ReportTrialProgress(
 	}
 	exp := actor.Addr("experiments", eID)
 
-	if err = a.askAtDefaultSystem(exp, trialReportProgress{
+	if err = a.ask(exp, trialReportProgress{
 		requestID: rID,
 		progress:  model.PartialUnits(req.Progress),
 	}, nil); err != nil {
@@ -706,7 +706,7 @@ func (a *apiServer) GetTrialRendezvousInfo(
 	}
 
 	var w rendezvousWatcher
-	if err = a.askAtDefaultSystem(trial, watchRendezvousInfo{
+	if err = a.ask(trial, watchRendezvousInfo{
 		id: cproto.ID(req.ContainerId),
 	}, &w); err != nil {
 		return nil, err

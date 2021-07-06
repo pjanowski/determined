@@ -29,8 +29,6 @@ func TestRendezvous(t *testing.T) {
 
 			assert.Equal(t, r.rank(c1), 0)
 			assert.Equal(t, r.rank(c2), 1)
-			assert.Check(t, r.isLeader(c1))
-			assert.Check(t, !r.isLeader(c2))
 
 			var ws []rendezvousWatcher
 			watch := func(cID cproto.ID) func() {
@@ -187,7 +185,7 @@ func TestPreemption(t *testing.T) {
 	p.close()
 
 	// "task" is allocated.
-	p = newPreemption()
+	p = newPreemption(0)
 
 	// real watcher connects
 	id = uuid.New()

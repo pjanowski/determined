@@ -49,10 +49,6 @@ type (
 		trialID int
 	}
 
-	experimentStateChanged struct {
-		state model.State
-	}
-
 	// trialClosed is used to replay closes missed when the master dies between when a trial closing in
 	// its actor.PostStop and when the experiment snapshots the trial closed.
 	trialClosed struct {
@@ -64,10 +60,23 @@ type (
 
 // TrialSearcherState is the searcher state for a single trial.
 type TrialSearcherState struct {
-	Create   searcher.Create
-	Op       searcher.ValidateAfter
-	Complete bool
-	Closed   bool
+	Create      searcher.Create
+	Op          searcher.ValidateAfter
+	Complete    bool
+	CompleteAck bool
+	Closed      bool
+}
+
+// Finished returns true if the trial has completed all work that will ever be assigned to it.
+func (t TrialSearcherState) Finished() bool {
+	return t.Complete && t.Closed
+}
+
+// Waiting returns true if the trial has completed the current work allotted to it and acknowledged
+// this fact by having checked for new work and seen there was none. This case is the case where
+// we are safe to assume a trial exiting zero expects to be restarted.
+func (t TrialSearcherState) Waiting() bool {
+	return t.Complete && t.CompleteAck
 }
 
 type (
@@ -260,9 +269,15 @@ func (e *experiment) Receive(ctx *actor.Context) error {
 		state, ok := e.TrialSearcherState[requestID]
 		if !ok {
 			ctx.Respond(api.AsErrNotFound("trial %d has no state", msg.trialID))
-		} else {
-			ctx.Respond(state)
+			return nil
 		}
+
+		if state.Complete && !state.CompleteAck {
+			state.CompleteAck = true
+			e.TrialSearcherState[requestID] = state
+			ctx.Tell(ctx.Child(requestID), state)
+		}
+		ctx.Respond(state)
 	case actor.ChildFailed:
 		ctx.Log().WithError(msg.Error).Error("trial failed unexpectedly")
 		e.trialClosed(ctx, model.MustParseRequestID(msg.Child.Address().Local()))
@@ -293,15 +308,6 @@ func (e *experiment) Receive(ctx *actor.Context) error {
 		e.Config.SetResources(resources)
 		msg.Handler = ctx.Self()
 		ctx.Tell(e.rm, msg)
-
-	case killExperiment:
-		if _, running := model.RunningStates[e.State]; running {
-			e.updateState(ctx, model.StoppingCanceledState)
-		}
-
-		for _, child := range ctx.Children() {
-			ctx.Tell(child, killTrial{})
-		}
 
 	// Experiment shutdown logic.
 	case actor.PostStop:
@@ -363,6 +369,7 @@ func (e *experiment) Receive(ctx *actor.Context) error {
 				"experiment in incompatible state %s", e.State))
 		}
 
+	// TODO(XXX): Why do cancel and kill have the same behavior?
 	case *apiv1.CancelExperimentRequest:
 		switch {
 		case model.StoppingStates[e.State] || model.TerminalStates[e.State]:
@@ -372,7 +379,7 @@ func (e *experiment) Receive(ctx *actor.Context) error {
 			case true:
 				ctx.Respond(&apiv1.CancelExperimentResponse{})
 				for _, child := range ctx.Children() {
-					ctx.Tell(child, killTrial{})
+					ctx.Tell(child, model.StoppingCanceledState)
 				}
 			default:
 				ctx.Respond(status.Errorf(codes.FailedPrecondition,
@@ -380,7 +387,7 @@ func (e *experiment) Receive(ctx *actor.Context) error {
 			}
 		}
 
-	case *apiv1.KillExperimentRequest:
+	case killExperiment, *apiv1.KillExperimentRequest:
 		switch {
 		case model.StoppingStates[e.State] || model.TerminalStates[e.State]:
 			ctx.Respond(&apiv1.KillExperimentResponse{})
@@ -389,7 +396,7 @@ func (e *experiment) Receive(ctx *actor.Context) error {
 			case true:
 				ctx.Respond(&apiv1.KillExperimentResponse{})
 				for _, child := range ctx.Children() {
-					ctx.Tell(child, killTrial{})
+					ctx.Tell(child, model.StoppingCanceledState)
 				}
 			default:
 				ctx.Respond(status.Errorf(codes.FailedPrecondition,
@@ -433,6 +440,7 @@ func (e *experiment) processOperations(
 		e.updateState(ctx, model.StoppingErrorState)
 		return
 	}
+
 	defer e.snapshotAndSave(ctx)
 
 	updatedTrials := make(map[model.RequestID]bool)
@@ -449,7 +457,10 @@ func (e *experiment) processOperations(
 			config := schemas.Copy(e.Config).(expconf.ExperimentConfig)
 			state := TrialSearcherState{Create: op}
 			e.TrialSearcherState[op.RequestID] = state
-			ctx.ActorOf(op.RequestID, newTrial(e, config, checkpoint, state))
+			ctx.ActorOf(op.RequestID, newTrial(
+				e.ID, e.State, state, e.rm, e.trialLogger, e.db, config, checkpoint,
+				e.taskSpec, e.modelDefinition, e.agentUserGroup,
+			))
 		case searcher.ValidateAfter:
 			state := e.TrialSearcherState[op.RequestID]
 			state.Op = op
@@ -505,7 +516,7 @@ func (e *experiment) updateState(ctx *actor.Context, state model.State) bool {
 	telemetry.ReportExperimentStateChanged(ctx.Self().System(), e.db, *e.Experiment)
 
 	ctx.Log().Infof("experiment state changed to %s", state)
-	ctx.TellAll(experimentStateChanged{state: state}, ctx.Children()...)
+	ctx.TellAll(state, ctx.Children()...)
 	if err := e.db.SaveExperimentState(e.Experiment); err != nil {
 		ctx.Log().Errorf("error saving experiment state: %s", err)
 	}
