@@ -517,6 +517,19 @@ service Determined {
       tags: "Internal"
     };
   }
+  // Acknowledge the receipt of a preemption signal, indicating that stopping is
+  // a result of it. This is necessary to distinguish a container exiting
+  // because of a preemption signal from a container that happens to be exiting
+  // as it is preempted.
+  rpc AckTrialPreemptionSignal(AckTrialPreemptionSignalRequest)
+      returns (AckTrialPreemptionSignalResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/trials/{trial_id}/signals/ack_preemption"
+    };
+    option (grpc.gateway.protoc_gen_swagger.options.openapiv2_operation) = {
+      tags: "Internal"
+    };
+  }
   // Get the current searcher operation.
   rpc GetCurrentTrialSearcherOperation(GetCurrentTrialSearcherOperationRequest)
       returns (GetCurrentTrialSearcherOperationResponse) {

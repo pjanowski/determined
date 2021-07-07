@@ -195,7 +195,7 @@ func (t *trial) Receive(ctx *actor.Context) error {
 		return t.processTask(ctx)
 	case watchRendezvousInfo, unwatchRendezvousInfo, rendezvousTimeout:
 		return t.processRendezvous(ctx)
-	case watchPreemption, unwatchPreemption, preemptionTimeout:
+	case watchPreemption, unwatchPreemption, preemptionTimeout, ackPreemption:
 		return t.processPreemption(ctx)
 
 	default:
@@ -467,6 +467,8 @@ func (t *trial) processPreemption(ctx *actor.Context) error {
 			ctx.Log().WithError(err).Info("forcibly terminating trial")
 			t.terminate(ctx, false)
 		}
+	case ackPreemption:
+		t.preemption.acknowledge()
 	default:
 		return actor.ErrUnexpectedMessage(ctx)
 	}
@@ -528,7 +530,7 @@ func (t *trial) terminated(ctx *actor.Context) {
 	// Check reasons that indicate this termination is OK or expected.
 	case t.searcher.Waiting():
 		ctx.Log().WithError(status.Failure).Warn("trial stopped after finishing available work")
-	case t.preemption.preempted:
+	case t.preemption.preempted && t.preemption.acknowledged:
 		ctx.Log().WithError(status.Failure).Info("trial stopped after being preempted")
 	case status.Failure.FailureType == aproto.TaskAborted:
 		ctx.Log().WithError(status.Failure).Info("trial stopped after being aborted")
@@ -893,6 +895,7 @@ type (
 	watchPreemption   struct{ id uuid.UUID }
 	preemptionWatcher struct{ C <-chan struct{} }
 	unwatchPreemption struct{ id uuid.UUID }
+	ackPreemption     struct{}
 
 	// preemptionTimeout is the time after which we forcibly terminate a trial that has no
 	// preempted.
@@ -906,9 +909,10 @@ type (
 	// where the lifetime of a "preemption" is equivalent to the lifetime of task and they can be
 	// initialized together.
 	preemption struct {
-		runID       int
-		preempted   bool
-		preemptedAt time.Time
+		runID        int
+		preempted    bool
+		acknowledged bool
+		preemptedAt  time.Time
 		// Map of watcher ID to a bool indicating if the trial should preempt.
 		watchers map[uuid.UUID]chan<- struct{}
 	}
@@ -916,9 +920,10 @@ type (
 
 func newPreemption(runID int) *preemption {
 	return &preemption{
-		runID:     runID,
-		preempted: false,
-		watchers:  map[uuid.UUID]chan<- struct{}{},
+		runID:        runID,
+		preempted:    false,
+		acknowledged: false,
+		watchers:     map[uuid.UUID]chan<- struct{}{},
 	}
 }
 
@@ -958,6 +963,13 @@ func (p *preemption) preempt() {
 		close(w)
 		delete(p.watchers, id)
 	}
+}
+
+func (p *preemption) acknowledge() {
+	if p == nil {
+		return
+	}
+	p.acknowledged = true
 }
 
 func (p *preemption) checkTimeout(runID int) error {

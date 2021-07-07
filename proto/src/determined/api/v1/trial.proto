@@ -289,6 +289,16 @@ message TrialPreemptionSignalResponse {
   // True if signaling preempt, otherwise just a synchronization marker.
   bool preempt = 1;
 }
+// Acknowledge the receipt of a preemption signal.
+message AckTrialPreemptionSignalRequest {
+  option (grpc.gateway.protoc_gen_swagger.options.openapiv2_schema) = {
+    json_schema: { required: [ "trial_id" ] }
+  };
+  // The requested trial's id.
+  int32 trial_id = 1;
+}
+// Response to AckTrialPreemptionSignalRequest.
+message AckTrialPreemptionSignalResponse {}
 
 // Retrieves the current searcher operation.
 message GetCurrentTrialSearcherOperationRequest {

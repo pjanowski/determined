@@ -572,6 +572,17 @@ func (a *apiServer) TrialPreemptionSignal(
 	}
 }
 
+func (a *apiServer) AckTrialPreemptionSignal(
+	_ context.Context, req *apiv1.AckTrialPreemptionSignalRequest,
+) (*apiv1.AckTrialPreemptionSignalResponse, error) {
+	trial, err := a.trialActorFromID(int(req.TrialId))
+	if err != nil {
+		return nil, err
+	}
+
+	return &apiv1.AckTrialPreemptionSignalResponse{}, a.ask(trial, ackPreemption{}, nil)
+}
+
 func (a *apiServer) GetCurrentTrialSearcherOperation(
 	_ context.Context, req *apiv1.GetCurrentTrialSearcherOperationRequest,
 ) (*apiv1.GetCurrentTrialSearcherOperationResponse, error) {
