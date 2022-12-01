@@ -1,9 +1,9 @@
 ---
 name: "Scan Docker images"
 
-on:
-  schedule:
-    - cron: "15 1 * * 0"
+# on:
+#   schedule:
+#     - cron: "15 1 * * 0"
 
 jobs:
   list-images:
